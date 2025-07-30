@@ -36,7 +36,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🧦 Allayr - Smart Compression Sock 2.0")
+st.title("Allayr - Your Compression Sock 2.0")
+st.markdown("##### Compression that thinks.")
+
+# --- Status Bar ---
+st.markdown("""
+<div style='display: flex; justify-content: space-between; padding: 0.5rem 1rem; background-color: #1a1a1a; border-radius: 8px;'>
+    <div>Battery ⚡ 80%</div>
+    <div>Temp 🌡️ 36.5°C</div>
+    <div>Status: ✅ Stable</div>
+</div>
+""", unsafe_allow_html=True)
 
 # --- Sidebar Controls ---
 with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
@@ -44,8 +54,10 @@ with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
     battery_level = st.slider("Battery (%)", 0.0, 100.0, 80.0, 1.0)
     real_time_mode = st.checkbox("⏱ Real-Time Simulation", value=False)
     show_live_heatmap = st.checkbox("📊 Show Zone Signal Heatmap", value=False)
+    enable_goal_tracker = st.checkbox("🎯 Show Goal Tracker", value=True)
+    enable_export = st.checkbox("💾 Enable Recovery Log Export", value=False)
 
-with st.sidebar.expander("🧠 Control Mode", expanded=False):
+with st.sidebar.expander(" Control Mode", expanded=False):
     control_mode = st.radio("Compression Control:", ["Allayr (Autonomous)", "Manual"], index=0)
     manual_action = None
     if control_mode == "Manual":
@@ -69,6 +81,7 @@ with st.sidebar.expander("📘 Sensor Glossary", expanded=False):
 
 with st.sidebar.expander("💬 Ask Allayr (Recovery Chatbot)", expanded=False):
     st.markdown("_Allayr is your warm, supportive recovery trainer. Ask anything about your performance, recovery plan, or latest compression action._")
+    enable_voice = st.checkbox("🔊 Enable Voice", value=False)
     user_input = st.text_input("Ask Allayr a question:", key="chatbox")
     if user_input:
         st.markdown(f"**You:** {user_input}")
@@ -88,146 +101,42 @@ with st.sidebar.expander("💬 Ask Allayr (Recovery Chatbot)", expanded=False):
 
         st.markdown(f"**Allayr:** {response}")
 
-        # --- Voice Feature ---
         def speak(text):
             speech_script = f"""
             <script>
-                var msg = new SpeechSynthesisUtterance("{text}");
-                msg.voice = speechSynthesis.getVoices().filter(voice => voice.name === 'Google UK English Female')[0];
+                var msg = new SpeechSynthesisUtterance("{response}");
+                msg.pitch = 1.1;
+                msg.rate = 0.95;
+                msg.voice = speechSynthesis.getVoices().find(voice => voice.lang.includes('en') && voice.name.includes('Female'));
                 window.speechSynthesis.speak(msg);
             </script>
             """
             components.html(speech_script)
 
-        speak(response)
+        if enable_voice:
+            speak(response)
 
-run_sim = st.sidebar.button("▶️ Run Full Stack Simulation")
+# placeholder sections
+if enable_goal_tracker:
+    st.markdown("""
+    <div style='margin-top: 2rem; background-color: #111; padding: 1rem; border-radius: 8px;'>
+        <h4 style='margin-bottom: 0.5rem;'>🏁 Daily Goal Tracker</h4>
+        <ul>
+            <li>🎯 60-min light compression achieved</li>
+            <li>🥤 Hydration reminder met</li>
+            <li>🛏️ Sleep goal pending</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
-# --- Sock State ---
-sock_state = {
-    'battery_level': battery_level,
-    'sensor_status': True,
-    'ble_connection': True,
-    'temp_celsius': temp_celsius,
-    'sampling_rate': 10,
-    'inference_enabled': True,
-    'fallback_enabled': False,
-    'control_mode': control_mode,
-    'manual_action': manual_action
-}
+if enable_export:
+    st.download_button(
+        label="📥 Export Recovery Log",
+        data=json.dumps({"status": "demo only"}, indent=2),
+        file_name="allayr_recovery_log.json",
+        mime="application/json"
+    )
 
-# --- Visual Feedback Placeholder ---
 st.markdown("""
-### 🧠 Latest Compression Action
+> _"Every decision I make is one step closer to your recovery. Let’s keep moving." — Allayr_
 """)
-if control_mode == "Manual" and manual_action:
-    st.markdown(f"**Manual Mode Active:** Compression set to **{manual_action}**")
-elif control_mode == "Allayr (Autonomous)":
-    st.markdown("**Autonomous Mode Active:** Allayr will make compression decisions based on real-time sensor data.")
-
-# --- Simulation Logic ---
-def generate_fake_sensor_data():
-    base = random.randint(1000, 1500)
-    return [random.randint(base - 150, base + 150) for _ in range(4)]
-
-def compute_anomaly_score(window):
-    flat = np.array(window).flatten()
-    mean = np.mean(flat)
-    score = np.mean(np.square(flat - mean))
-    return score / 1000
-
-def adaptive_threshold(temp):
-    base = 500
-    if temp > 38:
-        return base * 1.5
-    elif temp < 30:
-        return base * 0.8
-    return base
-
-def recommend_compression_action(values, score, threshold):
-    zones = ["Zone 1 (Ankle 🦶 - Doppler)",
-             "Zone 2 (Mid-Calf 🔦 - NIRS)",
-             "Zone 3 (Lower-Calf 💓 - PPG)",
-             "Zone 4 (Mid-Calf 💥 - Pressure)"]
-    zone_signals = dict(zip(zones, values))
-    if score > threshold:
-        target_zone = max(zone_signals, key=zone_signals.get)
-        return f"🔺 Increase compression based on signal from {target_zone}"
-    elif score < threshold * 0.7:
-        target_zone = min(zone_signals, key=zone_signals.get)
-        return f"🔻 Decrease compression based on signal from {target_zone}"
-    else:
-        return "✅ Maintain current compression (balanced)"
-
-def plot_zone_signals(values):
-    zones = ["Ankle 🦶 - Doppler", "Mid-Calf 🔦 - NIRS", "Lower-Calf 💓 - PPG", "Mid-Calf 💥 - Pressure"]
-    fig, ax = plt.subplots()
-    sns.set_style("white")
-    sns.barplot(x=zones, y=values, palette=["#ffffff" if val < 1400 else "#ff1a1a" for val in values], ax=ax)
-    ax.set_ylabel("Sensor Reading", color='white')
-    ax.set_title("🔬 Sensor Zone Readings", color='white')
-    ax.tick_params(colors='white')
-    st.pyplot(fig)
-
-if run_sim:
-    buffer = deque(maxlen=100)
-    anomaly_scores = []
-    anomaly_flags = []
-    explain_outputs = []
-    step_number = 1
-    tab1, tab2, tab3 = st.tabs(["📈 Simulation", "🔍 AI Explainability", "🧦 Sock State"])
-    chart_area = tab1.empty()
-
-    for _ in range(100):
-        fake_data = generate_fake_sensor_data()
-        buffer.append(fake_data)
-
-        score = compute_anomaly_score(buffer)
-        threshold = adaptive_threshold(sock_state['temp_celsius']) / 1000
-        is_anomaly = score > threshold
-        action = recommend_compression_action(fake_data, score, threshold)
-
-        anomaly_scores.append(score)
-        anomaly_flags.append(is_anomaly)
-
-        explanation = (
-            f"**Step {step_number}**  \n"
-            f"• Score: **{score:.2f}** | Threshold: **{threshold:.2f}**  \n"
-            f"• Raw Sensor Values: {fake_data}  \n"
-            f"• **Action:** {action}  \n"
-            f"🧪 *Interpretation: Abnormal signal variance may indicate poor perfusion, swelling, or oxygen drop.*"
-        )
-        explain_outputs.append(explanation)
-        step_number += 1
-
-        with chart_area.container():
-            df = pd.DataFrame({
-                "Score": anomaly_scores,
-                "Threshold": [threshold] * len(anomaly_scores)
-            })
-            fig, ax = plt.subplots()
-            ax.plot(df["Score"], label="Anomaly Score", color="white")
-            ax.plot(df["Threshold"], linestyle="--", label="Threshold", color="gray")
-            anomaly_indices = [i for i, flag in enumerate(anomaly_flags) if flag]
-            ax.scatter(anomaly_indices, [anomaly_scores[i] for i in anomaly_indices],
-                       color="red", label="Anomalies", zorder=5)
-            ax.set_title(f"📊 Live Anomaly Detection — Step {step_number}", color='white')
-            ax.tick_params(colors='white')
-            ax.legend()
-            st.pyplot(fig)
-
-            if show_live_heatmap:
-                st.markdown("### 📊 Live Sensor Readings")
-                plot_zone_signals(fake_data)
-
-        with tab2:
-            st.markdown("### 🔍 Latest AI Reasoning")
-            st.markdown(explanation)
-
-        with tab3:
-            for key, val in sock_state.items():
-                st.metric(key.replace("_", " ").title(), str(val))
-
-        time.sleep(0.3)
-
-    st.success("✅ Simulation Complete")
