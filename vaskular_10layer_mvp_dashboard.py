@@ -44,7 +44,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🧦 Allayr - Smart Compression Sock 2.0")
+st.title("Allayr - Your Compression Sock 2.0")
 st.markdown("##### Compression that thinks.")
 
 st.markdown("""
@@ -89,6 +89,13 @@ with st.sidebar.expander("📘 Sensor Glossary", expanded=False):
 buffer = deque(maxlen=100)
 anomaly_scores = []
 anomaly_flags = []
+
+zone_values = {
+    'Zone 1 (Ankle - Doppler)': 'N/A',
+    'Zone 2 (Mid-Calf - NIRS)': 'N/A',
+    'Zone 3 (Lower Calf - PPG)': 'N/A',
+    'Zone 4 (Mid-Calf - Pressure)': 'N/A'
+}
 
 if "step_number" not in st.session_state:
     st.session_state.step_number = 1
