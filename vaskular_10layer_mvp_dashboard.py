@@ -36,7 +36,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Allayr - Your Compression Sock 2.0")
+st.title("🧦 Allayr - Smart Compression Sock 2.0")
 st.markdown("##### Compression that thinks.")
 
 st.markdown("""
@@ -83,7 +83,9 @@ with st.sidebar.expander("📘 Sensor Glossary", expanded=False):
 buffer = deque(maxlen=100)
 anomaly_scores = []
 anomaly_flags = []
-step_number = 1
+
+if "step_number" not in st.session_state:
+    st.session_state.step_number = 1
 
 if enable_step_sim:
     step = st.button("▶️ Run Next Step")
@@ -95,26 +97,34 @@ if enable_step_sim:
         threshold = 0.5
         is_anomaly = score > threshold
 
+        zones = ["Zone 1 (Ankle - Doppler)",
+                 "Zone 2 (Mid-Calf - NIRS)",
+                 "Zone 3 (Lower Calf - PPG)",
+                 "Zone 4 (Mid-Calf - Pressure)"]
+        zone_values = dict(zip(zones, fake_data))
+
         if control_mode == "Allayr (Autonomous)":
             if score > threshold:
-                action = "🔺 Increase Compression"
+                target_zone = max(zone_values, key=zone_values.get)
+                action = f"🔺 Increase compression at {target_zone}"
             elif score < threshold * 0.7:
-                action = "🔻 Decrease Compression"
+                target_zone = min(zone_values, key=zone_values.get)
+                action = f"🔻 Decrease compression at {target_zone}"
             else:
-                action = "✅ Maintain Compression"
+                action = "✅ Maintain compression across all zones"
         elif control_mode == "Manual":
-            action = manual_action
+            action = f"Manual override: {manual_action} compression across all zones"
 
         explanation = (
-            f"**Step {step_number}**  \n"
+            f"**Step {st.session_state.step_number}**  \n"
             f"• Score: **{score:.2f}** | Threshold: **{threshold:.2f}**  \n"
-            f"• Raw Sensor Values: {fake_data}  \n"
+            f"• Raw Sensor Values: {zone_values}  \n"
             f"• **Action:** {action}  \n"
-            f"🧪 *Interpretation: Signal variation detected. Adjusting accordingly.*"
+            f"🧪 *Interpretation: Signal variation analyzed across multiple biometric inputs.*"
         )
 
         st.markdown(explanation)
-        step_number += 1
+        st.session_state.step_number += 1
 
 if enable_goal_tracker:
     st.markdown("""
