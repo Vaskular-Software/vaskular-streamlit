@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 import os
 import time
+import openai
 import streamlit.components.v1 as components
 
 st.set_page_config(layout="wide")
@@ -54,7 +55,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Sidebar Controls ---
 with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
     temp_celsius = st.slider("Body Temp (°C)", 28.0, 40.0, 36.5, 0.1)
     battery_level = st.slider("Battery (%)", 0.0, 100.0, 80.0, 1.0)
@@ -86,7 +86,6 @@ with st.sidebar.expander("📘 Sensor Glossary", expanded=False):
     • Maps venous pressure dynamically across calf regions.
     """)
 
-# --- Step-by-Step Simulation ---
 buffer = deque(maxlen=100)
 anomaly_scores = []
 anomaly_flags = []
@@ -133,7 +132,6 @@ if enable_step_sim:
         st.markdown(explanation)
         st.session_state.step_number += 1
 
-# --- Goal Tracker ---
 if enable_goal_tracker:
     st.markdown("""
     <div style='margin-top: 2rem; background-color: #111; padding: 1rem; border-radius: 8px;'>
@@ -146,7 +144,6 @@ if enable_goal_tracker:
     </div>
     """, unsafe_allow_html=True)
 
-# --- Export Option ---
 if enable_export:
     st.download_button(
         label="📥 Export Recovery Log",
@@ -157,7 +154,6 @@ if enable_export:
 
 st.markdown("> _\"Every decision I make is one step closer to your recovery. Let’s keep moving.\" — Allayr_")
 
-# --- Allayr Chatbot (Recovery Assistant) ---
 st.markdown("""
 <div class='chat-box'>
     <h4>💬 Ask Allayr</h4>
@@ -167,5 +163,29 @@ st.markdown("""
 
 user_prompt = st.text_input("Ask Allayr something:", "What's my recovery status today?")
 if user_prompt:
-    response = f"According to your latest metrics — temp {temp_celsius}°C, battery at {battery_level}%, and sensor signals from 4 zones — you're stable. Keep compression at current levels. Remember to hydrate."
-    st.success("Allayr says: " + response)
+    openai.api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+    system_prompt = f"""
+    You are Allayr, a warm but precise athletic recovery assistant. Based on the following sensor metrics, generate a natural language recovery update or advice:
+
+    - Body Temp: {temp_celsius} °C
+    - Battery Level: {battery_level}%
+    - Zone 1 (Doppler - Ankle): {zone_values.get('Zone 1 (Ankle - Doppler)', 'N/A')}
+    - Zone 2 (NIRS - Mid-Calf): {zone_values.get('Zone 2 (Mid-Calf - NIRS)', 'N/A')}
+    - Zone 3 (PPG - Lower Calf): {zone_values.get('Zone 3 (Lower Calf - PPG)', 'N/A')}
+    - Zone 4 (Pressure - Mid-Calf): {zone_values.get('Zone 4 (Mid-Calf - Pressure)', 'N/A')}
+    """
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.6
+        )
+        ai_response = response["choices"][0]["message"]["content"]
+        st.success("Allayr says: " + ai_response)
+    except Exception as e:
+        st.error(f"OpenAI API error: {e}")
