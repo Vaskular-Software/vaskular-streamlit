@@ -28,7 +28,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🧦 Allayr - Smart Compression Sock 2.0")
+st.title("Allayr - Finally, Your Compression Sock 2.0")
 
 # --- Sidebar Controls ---
 with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
