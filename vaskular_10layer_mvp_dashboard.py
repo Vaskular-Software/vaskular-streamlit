@@ -184,15 +184,16 @@ if user_prompt:
     - Zone 4 (Pressure - Mid-Calf): {zone_values.get('Zone 4 (Mid-Calf - Pressure)', 'N/A')}
     """
 
-    try:
-        response = openai.ChatCompletion.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
-    ],
-    temperature=0.6
-)
-ai_response = response.choices[0]["message"]["content"]
+   try:
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.6
+    )
+    ai_response = response.choices[0]["message"]["content"]
+
     except Exception as e:
         st.error(f"OpenAI API error: {e}")
