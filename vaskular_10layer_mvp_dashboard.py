@@ -11,14 +11,29 @@ import os
 import time
 
 st.set_page_config(layout="wide")
-st.title("🧦 Vaskular AI - Smart Compression Sock Demo")
+st.title("🧦 Allayr - Smart Compression Sock 2.0")
 
 # --- Sidebar Controls ---
 with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
     temp_celsius = st.slider("Body Temp (°C)", 28.0, 40.0, 36.5, 0.1)
     battery_level = st.slider("Battery (%)", 0.0, 100.0, 80.0, 1.0)
     real_time_mode = st.checkbox("⏱ Real-Time Simulation", value=False)
-    show_live_heatmap = st.checkbox("📊 Show Zone Pressure Heatmap", value=False)
+    show_live_heatmap = st.checkbox("📊 Show Zone Signal Heatmap", value=False)
+
+with st.sidebar.expander("📘 Sensor Glossary", expanded=False):
+    st.markdown("""
+    **Zone 1 – Ankle: Doppler Ultrasound Sensors**  
+    • Measures blood flow velocity to detect occlusions or clot precursors.
+
+    **Zone 2 – Mid-Calf: Near-Infrared Spectroscopy (NIRS)**  
+    • Measures tissue oxygen saturation (SpO₂).
+
+    **Zone 3 – Lower Calf: Photoplethysmography (PPG)**  
+    • Tracks microvascular blood flow (i.e., perfusion).
+
+    **Zone 4 – Mid-Calf: Pressure Sensors**  
+    • Maps venous pressure dynamically across calf regions.
+    """)
 
 run_sim = st.sidebar.button("▶️ Run Full Stack Simulation")
 
@@ -49,10 +64,11 @@ def check_fallback_needed(state):
     return state['fallback_enabled']
 
 # --- Sensor Simulation ---
-num_sensors = 9
-def generate_fake_ble_data():
-    base = random.randint(1200, 1600)
-    return [random.randint(base - 100, base + 100) for _ in range(num_sensors)]
+num_sensors = 4
+
+def generate_fake_sensor_data():
+    base = random.randint(1000, 1500)
+    return [random.randint(base - 150, base + 150) for _ in range(num_sensors)]
 
 # --- Anomaly Logic ---
 def compute_anomaly_score(window):
@@ -70,18 +86,17 @@ def adaptive_threshold(temp):
     return base
 
 def recommend_compression_action(values, score, threshold):
-    matrix = np.array(values).reshape((3, 3))
-    zone_sums = {
-        'Zone 1 (Toes 👣)': np.sum(matrix[0]),
-        'Zone 2 (Arch 👟)': np.sum(matrix[1]),
-        'Zone 3 (Heel 🦵)': np.sum(matrix[2])
-    }
+    zones = ["Zone 1 (Ankle 🦶 - Doppler)",
+             "Zone 2 (Mid-Calf 🔦 - NIRS)",
+             "Zone 3 (Lower-Calf 💓 - PPG)",
+             "Zone 4 (Mid-Calf 💥 - Pressure)"]
+    zone_signals = dict(zip(zones, values))
     if score > threshold:
-        target_zone = max(zone_sums, key=zone_sums.get)
-        return f"🔺 Increase compression in {target_zone} (high pressure)"
+        target_zone = max(zone_signals, key=zone_signals.get)
+        return f"🔺 Increase compression based on signal from {target_zone}"
     elif score < threshold * 0.7:
-        target_zone = min(zone_sums, key=zone_sums.get)
-        return f"🔻 Decrease compression in {target_zone} (low pressure)"
+        target_zone = min(zone_signals, key=zone_signals.get)
+        return f"🔻 Decrease compression based on signal from {target_zone}"
     else:
         return "✅ Maintain current compression (balanced)"
 
@@ -96,7 +111,7 @@ def log_data(timestamp, sensor_values, score, anomaly_flag, action):
         'anomaly_detected': bool(anomaly_flag),
         'compression_action': str(action)
     }
-    log_file = "vaskular_log.json"
+    log_file = "allayr_log.json"
     if not os.path.exists(log_file):
         with open(log_file, 'w') as f:
             json.dump([], f)
@@ -106,14 +121,18 @@ def log_data(timestamp, sensor_values, score, anomaly_flag, action):
         f.seek(0)
         json.dump(data, f, indent=2)
 
-def plot_zone_heatmap(matrix):
+def plot_zone_signals(values):
+    zones = ["Ankle 🦶 - Doppler",
+             "Mid-Calf 🔦 - NIRS",
+             "Lower-Calf 💓 - PPG",
+             "Mid-Calf 💥 - Pressure"]
     fig, ax = plt.subplots()
-    sns.heatmap(matrix, annot=True, fmt=".0f", cmap="YlOrRd", cbar=True,
-                xticklabels=["Sensor 1", "Sensor 2", "Sensor 3"],
-                yticklabels=["Toes 👣", "Arch 👟", "Heel 🦵"], ax=ax)
-    ax.set_title("🧭 Zone Pressure Heatmap")
+    sns.barplot(x=zones, y=values, palette="coolwarm", ax=ax)
+    ax.set_ylabel("Sensor Reading")
+    ax.set_title("🔬 Sensor Zone Readings")
     st.pyplot(fig)
-    # --- Main Simulation Logic ---
+
+# --- Main Simulation Logic ---
 buffer = deque(maxlen=100)
 anomaly_scores = []
 anomaly_flags = []
@@ -126,7 +145,7 @@ if run_sim:
     chart_area = tab1.empty()
 
     for _ in range(range_loop.stop):
-        fake_data = generate_fake_ble_data()
+        fake_data = generate_fake_sensor_data()
         buffer.append(fake_data)
 
         adjust_sampling_rate(sock_state)
@@ -142,22 +161,12 @@ if run_sim:
             anomaly_scores.append(score)
             anomaly_flags.append(is_anomaly)
 
-            matrix = np.array(fake_data).reshape((3, 3))
-            zone_sums = {
-                'Zone 1 (Toes 👣)': np.sum(matrix[0]),
-                'Zone 2 (Arch 👟)': np.sum(matrix[1]),
-                'Zone 3 (Heel 🦵)': np.sum(matrix[2])
-            }
-            max_zone = max(zone_sums, key=zone_sums.get)
-            min_zone = min(zone_sums, key=zone_sums.get)
-
             explanation = (
                 f"**Step {step_number}**  \n"
                 f"• Score: **{score:.2f}** | Threshold: **{threshold:.2f}**  \n"
-                f"• Highest Pressure: {max_zone} ({zone_sums[max_zone]:.0f})  \n"
-                f"• Lowest Pressure: {min_zone} ({zone_sums[min_zone]:.0f})  \n"
+                f"• Raw Sensor Values: {fake_data}  \n"
                 f"• **Action:** {action}  \n"
-                f"🧪 *Interpretation: Elevated pressure in {max_zone} may indicate reduced venous return or swelling risk.*"
+                f"🧪 *Interpretation: Abnormal signal variance may indicate poor perfusion, swelling, or oxygen drop.*"
             )
             explain_outputs.append(explanation)
             log_data(datetime.now().isoformat(), fake_data, float(score), is_anomaly, action)
@@ -180,8 +189,8 @@ if run_sim:
                     st.pyplot(fig)
 
                     if show_live_heatmap:
-                        st.markdown("### 🗺️ Zone Pressure")
-                        plot_zone_heatmap(matrix)
+                        st.markdown("### 📊 Live Sensor Readings")
+                        plot_zone_signals(fake_data)
 
                 with tab2:
                     st.markdown("### 🔍 Latest AI Reasoning")
@@ -197,72 +206,4 @@ if run_sim:
 
                 time.sleep(0.3)
 
-    # --- Summary (non-real-time) ---
-    if not real_time_mode:
-        with tab1:
-            st.subheader("📈 Final Anomaly Score Chart with Markers")
-            df = pd.DataFrame({
-                "Score": anomaly_scores,
-                "Threshold": [threshold] * len(anomaly_scores),
-                "Anomaly": anomaly_flags
-            })
-            fig, ax = plt.subplots()
-            ax.plot(df["Score"], label="Anomaly Score")
-            ax.plot(df["Threshold"], linestyle="--", label="Threshold")
-            ax.scatter(df.index[df["Anomaly"]], df["Score"][df["Anomaly"]],
-                       color="red", label="Anomalies", zorder=5)
-            ax.set_title("Final Anomaly Detection Chart")
-            ax.legend()
-            st.pyplot(fig)
-
-            if show_live_heatmap:
-                st.markdown("### 🗺️ Final Zone Pressure Map")
-                plot_zone_heatmap(matrix)
-
-        with tab2:
-            st.subheader("🔍 Final AI Explanation")
-            st.markdown(explain_outputs[-1], unsafe_allow_html=True)
-
-        with tab3:
-            st.subheader("🧦 Sock State Summary")
-            for key, val in sock_state.items():
-                st.metric(key.replace("_", " ").title(), str(val))
-            if mercy_shutdown_check(sock_state):
-                st.error("⚠️ Mercy-Aligned Shutdown Triggered")
-            else:
-                st.success("✅ System Stable")
-
-        # --- Apply AI Fix Button ---
-        if st.button("💡 Apply AI Recommendation"):
-            st.markdown("### ✅ Simulated Compression Adjustment")
-            last_matrix = matrix.copy()
-            recommended_action = explain_outputs[-1]
-            if "Zone 1" in recommended_action:
-                last_matrix[0] *= 0.5
-                fixed_zone = "Zone 1 (Toes 👣)"
-            elif "Zone 2" in recommended_action:
-                last_matrix[1] *= 0.5
-                fixed_zone = "Zone 2 (Arch 👟)"
-            elif "Zone 3" in recommended_action:
-                last_matrix[2] *= 0.5
-                fixed_zone = "Zone 3 (Heel 🦵)"
-            else:
-                st.info("No valid zone to apply action.")
-                fixed_zone = None
-
-            if fixed_zone:
-                flat = last_matrix.flatten()
-                new_score = np.mean(np.square(flat - np.mean(flat))) / 1000
-                fig, ax = plt.subplots()
-                ax.plot(anomaly_scores, label="Original Anomaly Score")
-                ax.axhline(y=new_score, color="green", linestyle="--", label="New Score After Fix")
-                ax.set_title(f"✔️ Anomaly Dropped After Fixing {fixed_zone}")
-                ax.legend()
-                st.pyplot(fig)
-                if show_live_heatmap:
-                    st.markdown(f"### 🗺️ Adjusted Zone Pressure Map ({fixed_zone})")
-                    plot_zone_heatmap(last_matrix)
-                st.success(f"✅ Anomalies resolved by reducing pressure in {fixed_zone}")
-
-        st.balloons()
-        st.success("✅ Simulation Complete")
+    st.success("✅ Simulation Complete")
