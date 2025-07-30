@@ -39,7 +39,6 @@ st.markdown("""
 st.title("Allayr - Your Compression Sock 2.0")
 st.markdown("##### Compression that thinks.")
 
-# --- Status Bar ---
 st.markdown("""
 <div style='display: flex; justify-content: space-between; padding: 0.5rem 1rem; background-color: #1a1a1a; border-radius: 8px;'>
     <div>Battery ⚡ 80%</div>
@@ -56,8 +55,9 @@ with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
     show_live_heatmap = st.checkbox("📊 Show Zone Signal Heatmap", value=False)
     enable_goal_tracker = st.checkbox("🎯 Show Goal Tracker", value=True)
     enable_export = st.checkbox("💾 Enable Recovery Log Export", value=False)
+    enable_step_sim = st.checkbox("🔬 Enable Step-by-Step Simulation", value=True)
 
-with st.sidebar.expander(" Control Mode", expanded=False):
+with st.sidebar.expander("🧠 Control Mode", expanded=False):
     control_mode = st.radio("Compression Control:", ["Allayr (Autonomous)", "Manual"], index=0)
     manual_action = None
     if control_mode == "Manual":
@@ -79,44 +79,43 @@ with st.sidebar.expander("📘 Sensor Glossary", expanded=False):
     • Maps venous pressure dynamically across calf regions.
     """)
 
-with st.sidebar.expander("💬 Ask Allayr (Recovery Chatbot)", expanded=False):
-    st.markdown("_Allayr is your warm, supportive recovery trainer. Ask anything about your performance, recovery plan, or latest compression action._")
-    enable_voice = st.checkbox("🔊 Enable Voice", value=False)
-    user_input = st.text_input("Ask Allayr a question:", key="chatbox")
-    if user_input:
-        st.markdown(f"**You:** {user_input}")
+# --- Step-by-Step Simulation ---
+buffer = deque(maxlen=100)
+anomaly_scores = []
+anomaly_flags = []
+step_number = 1
 
-        if "why" in user_input.lower():
-            response = "I noticed a perfusion drop in Zone 3. So I increased compression slightly to help your blood flow rebound — nothing to worry about, just looking out for you 💪"
-        elif "recovery" in user_input.lower():
-            response = "Right now, your signals look good. If you're still sore, I’d recommend light stretching and compression on Zones 2 and 4. Let’s get you back to 100%."
-        elif "plan" in user_input.lower():
-            response = "Today’s focus is on circulation support. If you had a tough workout, I’ve been gently cycling compression to help flush lactic acid. We’ve got this."
-        elif "score" in user_input.lower():
-            response = "Your last anomaly score was a bit elevated, mostly due to a pressure spike in Zone 4. I adjusted it — you're stable now."
-        elif "name" in user_input.lower():
-            response = "I’m Allayr — your AI recovery trainer. Here to get you back to peak shape, every time."
-        else:
-            response = "I’m here to help however I can. You can ask me about your zones, compression changes, or recovery tips anytime."
+if enable_step_sim:
+    step = st.button("▶️ Run Next Step")
+    if step:
+        fake_data = [random.randint(1000, 1500) for _ in range(4)]
+        buffer.append(fake_data)
+        flat = np.array(buffer).flatten()
+        score = np.mean(np.square(flat - np.mean(flat))) / 1000
+        threshold = 0.5
+        is_anomaly = score > threshold
 
-        st.markdown(f"**Allayr:** {response}")
+        if control_mode == "Allayr (Autonomous)":
+            if score > threshold:
+                action = "🔺 Increase Compression"
+            elif score < threshold * 0.7:
+                action = "🔻 Decrease Compression"
+            else:
+                action = "✅ Maintain Compression"
+        elif control_mode == "Manual":
+            action = manual_action
 
-        def speak(text):
-            speech_script = f"""
-            <script>
-                var msg = new SpeechSynthesisUtterance("{response}");
-                msg.pitch = 1.1;
-                msg.rate = 0.95;
-                msg.voice = speechSynthesis.getVoices().find(voice => voice.lang.includes('en') && voice.name.includes('Female'));
-                window.speechSynthesis.speak(msg);
-            </script>
-            """
-            components.html(speech_script)
+        explanation = (
+            f"**Step {step_number}**  \n"
+            f"• Score: **{score:.2f}** | Threshold: **{threshold:.2f}**  \n"
+            f"• Raw Sensor Values: {fake_data}  \n"
+            f"• **Action:** {action}  \n"
+            f"🧪 *Interpretation: Signal variation detected. Adjusting accordingly.*"
+        )
 
-        if enable_voice:
-            speak(response)
+        st.markdown(explanation)
+        step_number += 1
 
-# placeholder sections
 if enable_goal_tracker:
     st.markdown("""
     <div style='margin-top: 2rem; background-color: #111; padding: 1rem; border-radius: 8px;'>
@@ -137,6 +136,4 @@ if enable_export:
         mime="application/json"
     )
 
-st.markdown("""
-> _"Every decision I make is one step closer to your recovery. Let’s keep moving." — Allayr_
-""")
+st.markdown("> _\"Every decision I make is one step closer to your recovery. Let’s keep moving.\" — Allayr_")
