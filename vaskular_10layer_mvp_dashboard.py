@@ -33,6 +33,13 @@ st.markdown("""
         .main .block-container {
             padding: 2rem 1rem;
         }
+        .chat-box {
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 2rem;
+            background-color: #111;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -126,6 +133,7 @@ if enable_step_sim:
         st.markdown(explanation)
         st.session_state.step_number += 1
 
+# --- Goal Tracker ---
 if enable_goal_tracker:
     st.markdown("""
     <div style='margin-top: 2rem; background-color: #111; padding: 1rem; border-radius: 8px;'>
@@ -138,6 +146,7 @@ if enable_goal_tracker:
     </div>
     """, unsafe_allow_html=True)
 
+# --- Export Option ---
 if enable_export:
     st.download_button(
         label="📥 Export Recovery Log",
@@ -147,3 +156,16 @@ if enable_export:
     )
 
 st.markdown("> _\"Every decision I make is one step closer to your recovery. Let’s keep moving.\" — Allayr_")
+
+# --- Allayr Chatbot (Recovery Assistant) ---
+st.markdown("""
+<div class='chat-box'>
+    <h4>💬 Ask Allayr</h4>
+    <p>Need advice on your recovery? Ask me anything based on your real-time data.</p>
+</div>
+""", unsafe_allow_html=True)
+
+user_prompt = st.text_input("Ask Allayr something:", "What's my recovery status today?")
+if user_prompt:
+    response = f"According to your latest metrics — temp {temp_celsius}°C, battery at {battery_level}%, and sensor signals from 4 zones — you're stable. Keep compression at current levels. Remember to hydrate."
+    st.success("Allayr says: " + response)
