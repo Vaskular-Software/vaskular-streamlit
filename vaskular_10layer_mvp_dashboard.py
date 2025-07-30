@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 import os
 import time
-import openai
+from openai import OpenAI
 import streamlit.components.v1 as components
 
 st.set_page_config(layout="wide")
@@ -170,7 +170,7 @@ st.markdown("""
 
 user_prompt = st.text_input("Ask Allayr something:", "What's my recovery status today?")
 if user_prompt:
-    openai.api_key = "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"
+    client = OpenAI(api_key="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")
 
     system_prompt = f"""
     You are Allayr, a warm but precise athletic recovery assistant. Based on the following sensor metrics, generate a natural language recovery update or advice:
@@ -184,7 +184,7 @@ if user_prompt:
     """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -192,7 +192,7 @@ if user_prompt:
             ],
             temperature=0.6
         )
-        ai_response = response["choices"][0]["message"]["content"]
+        ai_response = response.choices[0].message.content
         st.success("Allayr says: " + ai_response)
     except Exception as e:
         st.error(f"OpenAI API error: {e}")
