@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 import os
 import time
-import openai
+from openai import OpenAI
 import streamlit.components.v1 as components
 
 st.set_page_config(layout="wide")
@@ -44,7 +44,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🧦 Allayr - Smart Compression Sock 2.0")
+st.title("🧶 Allayr - Smart Compression Sock 2.0")
 st.markdown("##### Compression that thinks.")
 
 st.markdown("""
@@ -61,10 +61,10 @@ with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
     real_time_mode = st.checkbox("⏱ Real-Time Simulation", value=False)
     show_live_heatmap = st.checkbox("📊 Show Zone Signal Heatmap", value=False)
     enable_goal_tracker = st.checkbox("🎯 Show Goal Tracker", value=True)
-    enable_export = st.checkbox("💾 Enable Recovery Log Export", value=False)
+    enable_export = st.checkbox("📂 Enable Recovery Log Export", value=False)
     enable_step_sim = st.checkbox("🔬 Enable Step-by-Step Simulation", value=True)
 
-with st.sidebar.expander("🧠 Control Mode", expanded=False):
+with st.sidebar.expander("👀 Control Mode", expanded=False):
     control_mode = st.radio("Compression Control:", ["Allayr (Autonomous)", "Manual"], index=0)
     manual_action = None
     if control_mode == "Manual":
@@ -119,7 +119,7 @@ if enable_step_sim:
         if control_mode == "Allayr (Autonomous)":
             if score > threshold:
                 target_zone = max(zone_values, key=zone_values.get)
-                action = f"🔺 Increase compression at {target_zone}"
+                action = f"🔹 Increase compression at {target_zone}"
             elif score < threshold * 0.7:
                 target_zone = min(zone_values, key=zone_values.get)
                 action = f"🔻 Decrease compression at {target_zone}"
@@ -142,18 +142,18 @@ if enable_step_sim:
 if enable_goal_tracker:
     st.markdown("""
     <div style='margin-top: 2rem; background-color: #111; padding: 1rem; border-radius: 8px;'>
-        <h4 style='margin-bottom: 0.5rem;'>🏁 Daily Goal Tracker</h4>
+        <h4 style='margin-bottom: 0.5rem;'>🌝 Daily Goal Tracker</h4>
         <ul>
             <li>🎯 60-min light compression achieved</li>
             <li>🥤 Hydration reminder met</li>
-            <li>🛏️ Sleep goal pending</li>
+            <li>🛌 Sleep goal pending</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
 
 if enable_export:
     st.download_button(
-        label="📥 Export Recovery Log",
+        label="📅 Export Recovery Log",
         data=json.dumps({"status": "demo only"}, indent=2),
         file_name="allayr_recovery_log.json",
         mime="application/json"
@@ -170,7 +170,7 @@ st.markdown("""
 
 user_prompt = st.text_input("Ask Allayr something:", "What's my recovery status today?")
 if user_prompt:
-    openai.api_key = "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"
+    client = OpenAI(api_key="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")
 
     system_prompt = f"""
     You are Allayr, a warm but precise athletic recovery assistant. Based on the following sensor metrics, generate a natural language recovery update or advice:
@@ -184,7 +184,7 @@ if user_prompt:
     """
 
     try:
-        response = openai.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": system_prompt},
