@@ -171,8 +171,6 @@ st.markdown("""
 
 user_prompt = st.text_input("Ask Allayr something:", "What's my recovery status today?")
 if user_prompt:
-    client = OpenAI(api_key="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")
-
     system_prompt = f"""
     You are Allayr, a warm but precise athletic recovery assistant. Based on the following sensor metrics, generate a natural language recovery update or advice:
 
@@ -184,16 +182,16 @@ if user_prompt:
     - Zone 4 (Pressure - Mid-Calf): {zone_values.get('Zone 4 (Mid-Calf - Pressure)', 'N/A')}
     """
 
-   try:
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=0.6
-    )
-    ai_response = response.choices[0]["message"]["content"]
-
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.6
+        )
+        ai_response = response.choices[0]["message"]["content"]
+        st.markdown(f"**Allayr:** {ai_response}")
     except Exception as e:
         st.error(f"OpenAI API error: {e}")
