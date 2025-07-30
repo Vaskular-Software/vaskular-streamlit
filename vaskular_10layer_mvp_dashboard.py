@@ -37,7 +37,7 @@ with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
     real_time_mode = st.checkbox("⏱ Real-Time Simulation", value=False)
     show_live_heatmap = st.checkbox("📊 Show Zone Signal Heatmap", value=False)
 
-with st.sidebar.expander("🧠 Control Mode", expanded=False):
+with st.sidebar.expander("Control Mode", expanded=False):
     control_mode = st.radio("Compression Control:", ["Allayr (Autonomous)", "Manual"], index=0)
     manual_action = None
     if control_mode == "Manual":
