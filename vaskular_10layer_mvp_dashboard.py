@@ -9,8 +9,9 @@ from datetime import datetime
 import json
 import os
 import time
-from openai import OpenAI
+import openai
 import streamlit.components.v1 as components
+openai.api_key = "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"
 
 st.set_page_config(layout="wide")
 st.markdown("""
@@ -184,15 +185,14 @@ if user_prompt:
     """
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.6
-        )
-        ai_response = response.choices[0].message.content
-        st.success("Allayr says: " + ai_response)
+        response = openai.ChatCompletion.create(
+    model="gpt-4",
+    messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ],
+    temperature=0.6
+)
+ai_response = response.choices[0]["message"]["content"]
     except Exception as e:
         st.error(f"OpenAI API error: {e}")
