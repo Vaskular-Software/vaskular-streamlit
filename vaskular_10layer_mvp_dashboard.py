@@ -28,7 +28,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Allayr - Your Compression Sock 2.0")
+st.title("🧦 Allayr - Smart Compression Sock 2.0")
 
 # --- Sidebar Controls ---
 with st.sidebar.expander("🔧 Simulation Settings", expanded=True):
@@ -102,3 +102,107 @@ if control_mode == "Manual" and manual_action:
 elif control_mode == "Allayr (Autonomous)":
     st.markdown("**Autonomous Mode Active:** Allayr will make compression decisions based on real-time sensor data.")
 
+# --- Simulation Logic ---
+def generate_fake_sensor_data():
+    base = random.randint(1000, 1500)
+    return [random.randint(base - 150, base + 150) for _ in range(4)]
+
+def compute_anomaly_score(window):
+    flat = np.array(window).flatten()
+    mean = np.mean(flat)
+    score = np.mean(np.square(flat - mean))
+    return score / 1000
+
+def adaptive_threshold(temp):
+    base = 500
+    if temp > 38:
+        return base * 1.5
+    elif temp < 30:
+        return base * 0.8
+    return base
+
+def recommend_compression_action(values, score, threshold):
+    zones = ["Zone 1 (Ankle 🦶 - Doppler)",
+             "Zone 2 (Mid-Calf 🔦 - NIRS)",
+             "Zone 3 (Lower-Calf 💓 - PPG)",
+             "Zone 4 (Mid-Calf 💥 - Pressure)"]
+    zone_signals = dict(zip(zones, values))
+    if score > threshold:
+        target_zone = max(zone_signals, key=zone_signals.get)
+        return f"🔺 Increase compression based on signal from {target_zone}"
+    elif score < threshold * 0.7:
+        target_zone = min(zone_signals, key=zone_signals.get)
+        return f"🔻 Decrease compression based on signal from {target_zone}"
+    else:
+        return "✅ Maintain current compression (balanced)"
+
+def plot_zone_signals(values):
+    zones = ["Ankle 🦶 - Doppler", "Mid-Calf 🔦 - NIRS", "Lower-Calf 💓 - PPG", "Mid-Calf 💥 - Pressure"]
+    fig, ax = plt.subplots()
+    sns.barplot(x=zones, y=values, palette="coolwarm", ax=ax)
+    ax.set_ylabel("Sensor Reading")
+    ax.set_title("🔬 Sensor Zone Readings")
+    st.pyplot(fig)
+
+if run_sim:
+    buffer = deque(maxlen=100)
+    anomaly_scores = []
+    anomaly_flags = []
+    explain_outputs = []
+    step_number = 1
+    tab1, tab2, tab3 = st.tabs(["📈 Simulation", "🔍 AI Explainability", "🧦 Sock State"])
+    chart_area = tab1.empty()
+
+    for _ in range(100):
+        fake_data = generate_fake_sensor_data()
+        buffer.append(fake_data)
+
+        if len(buffer) == 100:
+            score = compute_anomaly_score(buffer)
+            threshold = adaptive_threshold(sock_state['temp_celsius']) / 1000
+            is_anomaly = score > threshold
+            action = recommend_compression_action(fake_data, score, threshold)
+
+            anomaly_scores.append(score)
+            anomaly_flags.append(is_anomaly)
+
+            explanation = (
+                f"**Step {step_number}**  \n"
+                f"• Score: **{score:.2f}** | Threshold: **{threshold:.2f}**  \n"
+                f"• Raw Sensor Values: {fake_data}  \n"
+                f"• **Action:** {action}  \n"
+                f"🧪 *Interpretation: Abnormal signal variance may indicate poor perfusion, swelling, or oxygen drop.*"
+            )
+            explain_outputs.append(explanation)
+            step_number += 1
+
+            with chart_area.container():
+                df = pd.DataFrame({
+                    "Score": anomaly_scores,
+                    "Threshold": [threshold] * len(anomaly_scores)
+                })
+                fig, ax = plt.subplots()
+                ax.plot(df["Score"], label="Anomaly Score")
+                ax.plot(df["Threshold"], linestyle="--", label="Threshold")
+                anomaly_indices = [i for i, flag in enumerate(anomaly_flags) if flag]
+                ax.scatter(anomaly_indices, [anomaly_scores[i] for i in anomaly_indices],
+                           color="red", label="Anomalies", zorder=5)
+                ax.set_title(f"📊 Live Anomaly Detection — Step {step_number}")
+                ax.legend()
+                st.pyplot(fig)
+
+                if show_live_heatmap:
+                    st.markdown("### 📊 Live Sensor Readings")
+                    plot_zone_signals(fake_data)
+
+            with tab2:
+                st.markdown("### 🔍 Latest AI Reasoning")
+                st.markdown(explanation)
+
+            with tab3:
+                for key, val in sock_state.items():
+                    st.metric(key.replace("_", " ").title(), str(val))
+
+            time.sleep(0.2)
+
+    st.success("✅ Simulation Complete")
