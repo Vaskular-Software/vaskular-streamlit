@@ -95,7 +95,7 @@ sock_state = {
 
 # --- Visual Feedback Placeholder ---
 st.markdown("""
-### 🧠 Latest Compression Action
+###  Latest Compression Action
 """)
 if control_mode == "Manual" and manual_action:
     st.markdown(f"**Manual Mode Active:** Compression set to **{manual_action}**")
