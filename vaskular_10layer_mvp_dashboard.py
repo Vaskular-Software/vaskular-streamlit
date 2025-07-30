@@ -44,7 +44,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Allayr - Your Compression Sock 2.0")
+st.title("Allayr - Your Compression Sock, But Smart")
 st.markdown("##### Compression that thinks.")
 
 st.markdown("""
@@ -170,7 +170,7 @@ st.markdown("""
 
 user_prompt = st.text_input("Ask Allayr something:", "What's my recovery status today?")
 if user_prompt:
-    client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY"))
+    client = OpenAI(api_key="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")
 
     system_prompt = f"""
     You are Allayr, a warm but precise athletic recovery assistant. Based on the following sensor metrics, generate a natural language recovery update or advice:
